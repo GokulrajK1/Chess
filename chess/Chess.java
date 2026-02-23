@@ -4,7 +4,7 @@ import java.util.*;
 
 public class Chess {
 
-    public enum Player { white, black }
+    enum Player { white, black }
 
     private static BoardState gs;
 
