@@ -1,6 +1,6 @@
 package chess;
 
-public class BoardState {
+public class Board {
     private final Piece[][] b = new Piece[8][8]; // [rank][file], rank 0 = "1"
 
     public Chess.Player turn = Chess.Player.white;
@@ -22,8 +22,8 @@ public class BoardState {
     public Piece get(int f, int r) { return b[r][f]; }
     public void set(int f, int r, Piece p) { b[r][f] = p; }
 
-    public BoardState copy() {
-        BoardState g = new BoardState();
+    public Board copy() {
+        Board g = new Board();
         for (int r = 0; r < 8; r++) {
             for (int f = 0; f < 8; f++) {
                 g.b[r][f] = (this.b[r][f] == null) ? null : this.b[r][f].copy();
@@ -37,8 +37,8 @@ public class BoardState {
         return g;
     }
 
-    public static BoardState initial() {
-        BoardState gs = new BoardState();
+    public static Board initial() {
+        Board gs = new Board();
         // White back rank (rank 1 => r=0)
         gs.set(Coord.of('a',1), new Piece(Chess.Player.white, Piece.Kind.ROOK));
         gs.set(Coord.of('b',1), new Piece(Chess.Player.white, Piece.Kind.KNIGHT));

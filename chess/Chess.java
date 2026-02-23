@@ -6,7 +6,7 @@ public class Chess {
 
     enum Player { white, black }
 
-    private static BoardState gs;
+    private static Board board;
 
     /**
 	 * Plays the next move for whichever player has the turn.
@@ -18,26 +18,28 @@ public class Chess {
 	 *         the contents of the returned ReturnPlay instance.
 	 */
     public static ReturnPlay play(String move) {
-        if (gs == null) start();
+
+        if (board == null) Chess.start();
+
         String s = (move == null) ? "" : move.trim();
 
         // If game ended, ignore further moves (safe behavior)
-        if (gs.gameOver) {
-            return Engine.toReturnPlay(gs, gs.lastMessage);
+        if (board.gameOver) {
+            return Engine.toReturnPlay(board, board.lastMessage);
         }
 
         if (s.equalsIgnoreCase("resign")) {
-            gs.gameOver = true;
-            ReturnPlay.Message msg = (gs.turn == Player.white)
+            board.gameOver = true;
+            ReturnPlay.Message msg = (board.turn == Player.white)
                     ? ReturnPlay.Message.RESIGN_BLACK_WINS
                     : ReturnPlay.Message.RESIGN_WHITE_WINS;
-            gs.lastMessage = msg;
-            return Engine.toReturnPlay(gs, msg);
+            board.lastMessage = msg;
+            return Engine.toReturnPlay(board, msg);
         }
 
         String[] toks = s.split("\\s+");
         if (toks.length < 2) {
-            return Engine.toReturnPlay(gs, ReturnPlay.Message.ILLEGAL_MOVE);
+            return Engine.toReturnPlay(board, ReturnPlay.Message.ILLEGAL_MOVE);
         }
 
         Coord from = Coord.parse(toks[0]);
@@ -51,13 +53,13 @@ public class Chess {
             else if (toks[i].length() == 1) promoChar = Character.toUpperCase(toks[i].charAt(0));
         }
 
-        Piece mover = gs.get(from);
-        if (mover == null || mover.color != gs.turn) {
-            return Engine.toReturnPlay(gs, ReturnPlay.Message.ILLEGAL_MOVE);
+        Piece mover = board.get(from);
+        if (mover == null || mover.color != board.turn) {
+            return Engine.toReturnPlay(board, ReturnPlay.Message.ILLEGAL_MOVE);
         }
 
         // Generate pseudo-legal moves for this piece
-        List<Move> pseudos = Engine.pseudoMoves(gs, from);
+        List<Move> pseudos = Engine.pseudoMoves(board, from);
 
         Move chosen = null;
         for (Move m : pseudos) {
@@ -67,61 +69,61 @@ public class Chess {
             }
         }
         if (chosen == null) {
-            return Engine.toReturnPlay(gs, ReturnPlay.Message.ILLEGAL_MOVE);
+            return Engine.toReturnPlay(board, ReturnPlay.Message.ILLEGAL_MOVE);
         }
 
         // Promotion handling
         if (chosen.promotionCandidate) {
             chosen.promotion = Engine.promoFromCharOrDefault(promoChar);
         } else if (promoChar != null) {
-            return Engine.toReturnPlay(gs, ReturnPlay.Message.ILLEGAL_MOVE);
+            return Engine.toReturnPlay(board, ReturnPlay.Message.ILLEGAL_MOVE);
         }
 
         // Simulate legality (can't leave own king in check)
-        BoardState sim = gs.copy();
+        Board sim = board.copy();
         if (!Engine.applyMove(sim, chosen)) {
-            return Engine.toReturnPlay(gs, ReturnPlay.Message.ILLEGAL_MOVE);
+            return Engine.toReturnPlay(board, ReturnPlay.Message.ILLEGAL_MOVE);
         }
-        if (Engine.isKingInCheck(sim, gs.turn)) {
-            return Engine.toReturnPlay(gs, ReturnPlay.Message.ILLEGAL_MOVE);
+        if (Engine.isKingInCheck(sim, board.turn)) {
+            return Engine.toReturnPlay(board, ReturnPlay.Message.ILLEGAL_MOVE);
         }
 
         // Commit
-        Engine.applyMove(gs, chosen);
+        Engine.applyMove(board, chosen);
 
         // Draw offer after executing move
         if (wantsDraw) {
-            gs.gameOver = true;
-            gs.lastMessage = ReturnPlay.Message.DRAW;
-            return Engine.toReturnPlay(gs, ReturnPlay.Message.DRAW);
+            board.gameOver = true;
+            board.lastMessage = ReturnPlay.Message.DRAW;
+            return Engine.toReturnPlay(board, ReturnPlay.Message.DRAW);
         }
 
         // After move, gs.turn already flipped to next player
-        boolean inCheck = Engine.isKingInCheck(gs, gs.turn);
+        boolean inCheck = Engine.isKingInCheck(board, board.turn);
         if (inCheck) {
-            boolean hasReply = Engine.hasAnyLegalMove(gs, gs.turn);
+            boolean hasReply = Engine.hasAnyLegalMove(board, board.turn);
             if (!hasReply) {
-                gs.gameOver = true;
+                board.gameOver = true;
                 ReturnPlay.Message mateMsg =
-                        (gs.turn == Player.white)
+                        (board.turn == Player.white)
                                 ? ReturnPlay.Message.CHECKMATE_BLACK_WINS
                                 : ReturnPlay.Message.CHECKMATE_WHITE_WINS;
-                gs.lastMessage = mateMsg;
-                return Engine.toReturnPlay(gs, mateMsg);
+                board.lastMessage = mateMsg;
+                return Engine.toReturnPlay(board, mateMsg);
             } else {
-                gs.lastMessage = ReturnPlay.Message.CHECK;
-                return Engine.toReturnPlay(gs, ReturnPlay.Message.CHECK);
+                board.lastMessage = ReturnPlay.Message.CHECK;
+                return Engine.toReturnPlay(board, ReturnPlay.Message.CHECK);
             }
         }
 
-        gs.lastMessage = null;
-        return Engine.toReturnPlay(gs, null);
+        board.lastMessage = null;
+        return Engine.toReturnPlay(board, null);
     }
 
     /**
 	 * This method should reset the game, and start from scratch.
 	 */
     public static void start() {
-        gs = BoardState.initial();
+        board = Board.initial();
     }
 }
